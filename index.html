@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lifetime Counter</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #faf8f4;
+    --white: #ffffff;
+    --ink: #1c1a14;
+    --gold: #b8860b;
+    --rust: #c0420a;
+    --sage: #4a7055;
+    --muted: #8a8070;
+    --line: #e0d9cc;
+    --hover: #f5f0e6;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+  }
+
+  /* ── ENTRY ── */
+  #entry {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    background:
+      radial-gradient(ellipse 70% 50% at 10% 60%, rgba(184,134,11,0.07) 0%, transparent 60%),
+      radial-gradient(ellipse 50% 70% at 90% 20%, rgba(192,66,10,0.05) 0%, transparent 60%),
+      var(--bg);
+  }
+
+  .eyebrow {
+    font-size: 0.62rem;
+    letter-spacing: 0.38em;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-weight: 500;
+    margin-bottom: 1.6rem;
+    opacity: 0;
+    animation: up 0.7s ease forwards 0.1s;
+  }
+
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2.6rem, 8vw, 5.5rem);
+    font-weight: 400;
+    line-height: 1.05;
+    text-align: center;
+    color: var(--ink);
+    opacity: 0;
+    animation: up 0.7s ease forwards 0.25s;
+  }
+
+  h1 em {
+    font-style: italic;
+    color: var(--rust);
+  }
+
+  .entry-sub {
+    margin-top: 1.2rem;
+    font-size: 0.88rem;
+    color: var(--muted);
+    text-align: center;
+    max-width: 360px;
+    line-height: 1.8;
+    font-weight: 300;
+    opacity: 0;
+    animation: up 0.7s ease forwards 0.4s;
+  }
+
+  .divider {
+    width: 40px;
+    height: 1px;
+    background: var(--gold);
+    margin: 2.5rem 0;
+    opacity: 0;
+    animation: up 0.7s ease forwards 0.55s;
+  }
+
+  .form-wrap {
+    opacity: 0;
+    animation: up 0.7s ease forwards 0.7s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.4rem;
+  }
+
+  .form-label {
+    font-size: 0.62rem;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 500;
+    text-align: center;
+    display: block;
+    margin-bottom: 0.3rem;
+  }
+
+  .dropdowns {
+    display: flex;
+    gap: 0.6rem;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .dropdowns select {
+    appearance: none;
+    -webkit-appearance: none;
+    background: var(--white);
+    border: 1.5px solid var(--line);
+    color: var(--ink);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    padding: 0.65rem 2.2rem 0.65rem 0.9rem;
+    cursor: pointer;
+    outline: none;
+    border-radius: 4px;
+    transition: border-color 0.25s, box-shadow 0.25s;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238a8070' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+  }
+
+  .dropdowns select:focus {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px rgba(184,134,11,0.12);
+  }
+
+  #selDay   { width: 88px; }
+  #selMonth { width: 138px; }
+  #selYear  { width: 100px; }
+
+  .btn-start {
+    background: var(--ink);
+    color: var(--bg);
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.68rem;
+    font-weight: 500;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    padding: 0.95rem 2.8rem;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background 0.25s, transform 0.15s;
+  }
+
+  .btn-start:hover { background: var(--rust); transform: translateY(-1px); }
+  .btn-start:active { transform: translateY(0); }
+
+  /* ── DASHBOARD ── */
+  #dashboard {
+    display: none;
+    max-width: 940px;
+    margin: 0 auto;
+    padding: 0 1.5rem 5rem;
+  }
+
+  #dashboard.visible { display: block; }
+
+  .dash-top {
+    text-align: center;
+    padding: 3.5rem 1rem 2.5rem;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 2.5rem;
+    animation: up 0.6s ease forwards;
+  }
+
+  .dash-eyebrow {
+    font-size: 0.6rem;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-weight: 500;
+    margin-bottom: 0.8rem;
+  }
+
+  .age-display {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(1.6rem, 4.5vw, 3rem);
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+  }
+
+  .age-display .yrs { color: var(--rust); font-style: italic; }
+
+  .since {
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    margin-top: 0.7rem;
+    font-weight: 300;
+  }
+
+  /* Progress */
+  .life-bar {
+    background: var(--white);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 1.5rem 1.8rem;
+    margin-bottom: 1.5rem;
+    animation: up 0.5s ease forwards 0.15s;
+    opacity: 0;
+  }
+
+  .bar-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 0.9rem;
+  }
+
+  .bar-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  .bar-pct {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    color: var(--rust);
+    font-style: italic;
+  }
+
+  .track {
+    height: 5px;
+    background: var(--line);
+    border-radius: 99px;
+    overflow: hidden;
+  }
+
+  .fill {
+    height: 100%;
+    background: linear-gradient(to right, var(--rust), var(--gold));
+    border-radius: 99px;
+    width: 0;
+    transition: width 1.6s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .ticks {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.5rem;
+  }
+
+  .tick { font-size: 0.55rem; color: #ccc; letter-spacing: 0.05em; }
+
+  /* Cards */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .card {
+    background: var(--white);
+    padding: 1.6rem 1.5rem;
+    position: relative;
+    transition: background 0.2s;
+    opacity: 0;
+    animation: up 0.5s ease forwards;
+  }
+
+  .card:hover { background: var(--hover); }
+
+  .card::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--accent, var(--gold));
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.35s ease;
+    border-radius: 0 0 6px 6px;
+  }
+
+  .card:hover::after { transform: scaleX(1); }
+
+  .card:nth-child(1) { animation-delay: 0.1s; }
+  .card:nth-child(2) { animation-delay: 0.18s; }
+  .card:nth-child(3) { animation-delay: 0.26s; }
+  .card:nth-child(4) { animation-delay: 0.34s; }
+  .card:nth-child(5) { animation-delay: 0.42s; }
+  .card:nth-child(6) { animation-delay: 0.5s; }
+  .card:nth-child(7) { animation-delay: 0.58s; }
+  .card:nth-child(8) { animation-delay: 0.66s; }
+
+  .card-heart  { --accent: #c0420a; }
+  .card-monday { --accent: #7059a8; }
+  .card-summer { --accent: #b8860b; }
+  .card-books  { --accent: #8a5c2a; }
+  .card-breath { --accent: #4a7055; }
+  .card-moon   { --accent: #4a7088; }
+  .card-sleep  { --accent: #5a6a9a; }
+  .card-meals  { --accent: #a06030; }
+
+  .card-icon { font-size: 1.1rem; margin-bottom: 0.7rem; display: block; }
+
+  .card-label {
+    font-size: 0.58rem;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 500;
+    margin-bottom: 0.4rem;
+  }
+
+  .card-value {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(1.45rem, 2.6vw, 2rem);
+    color: var(--ink);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    word-break: break-all;
+  }
+
+  .card-sub {
+    font-size: 0.65rem;
+    color: var(--muted);
+    margin-top: 0.55rem;
+    line-height: 1.65;
+    font-weight: 300;
+  }
+
+  .card-sub strong { color: var(--ink); font-weight: 500; }
+
+  /* Quote */
+  .quote-wrap {
+    text-align: center;
+    padding: 3rem 1.5rem 1rem;
+    opacity: 0;
+    animation: up 0.5s ease forwards 0.8s;
+  }
+
+  .quote-text {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-size: clamp(0.95rem, 2.2vw, 1.2rem);
+    color: var(--muted);
+    max-width: 480px;
+    margin: 0 auto;
+    line-height: 2;
+  }
+
+  .quote-text em { color: var(--rust); font-style: normal; font-weight: 700; }
+
+  .btn-reset {
+    display: block;
+    margin: 2rem auto 0;
+    background: transparent;
+    border: 1px solid var(--line);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.62rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 0.6rem 1.5rem;
+    border-radius: 4px;
+    transition: border-color 0.2s, color 0.2s;
+  }
+
+  .btn-reset:hover { border-color: var(--gold); color: var(--gold); }
+
+  @keyframes up {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 480px) {
+    .cards { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 320px) {
+    .cards { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ENTRY -->
+<div id="entry">
+  <div class="eyebrow">A meditation on time</div>
+  <h1>Your <em>Life</em><br>in Numbers</h1>
+  <p class="entry-sub">Every second that passes is permanently gone. Let's count what you've spent — and what remains.</p>
+  <div class="divider"></div>
+  <div class="form-wrap">
+    <label class="form-label">Select your date of birth</label>
+    <div class="dropdowns">
+      <select id="selDay"><option value="">Day</option></select>
+      <select id="selMonth">
+        <option value="">Month</option>
+        <option value="0">January</option><option value="1">February</option>
+        <option value="2">March</option><option value="3">April</option>
+        <option value="4">May</option><option value="5">June</option>
+        <option value="6">July</option><option value="7">August</option>
+        <option value="8">September</option><option value="9">October</option>
+        <option value="10">November</option><option value="11">December</option>
+      </select>
+      <select id="selYear"><option value="">Year</option></select>
+    </div>
+    <button class="btn-start" onclick="startCounter()">Begin Counting</button>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard">
+  <div class="dash-top">
+    <div class="dash-eyebrow">You have been alive for</div>
+    <div class="age-display" id="ageDisplay">—</div>
+    <div class="since" id="sinceDisplay"></div>
+  </div>
+
+  <div class="life-bar">
+    <div class="bar-row">
+      <span class="bar-label">Life elapsed — assuming 80 years</span>
+      <span class="bar-pct" id="lifePct">0%</span>
+    </div>
+    <div class="track"><div class="fill" id="progressFill"></div></div>
+    <div class="ticks">
+      <span class="tick">birth</span>
+      <span class="tick">20</span>
+      <span class="tick">40</span>
+      <span class="tick">60</span>
+      <span class="tick">80</span>
+    </div>
+  </div>
+
+  <div class="cards">
+    <div class="card card-heart">
+      <span class="card-icon">♥</span>
+      <div class="card-label">Heartbeats used</div>
+      <div class="card-value" id="heartbeats">—</div>
+      <div class="card-sub">at ~<strong>70 bpm</strong>.<br>Your heart never took a day off.</div>
+    </div>
+    <div class="card card-monday">
+      <span class="card-icon">📅</span>
+      <div class="card-label">Mondays survived</div>
+      <div class="card-value" id="mondays">—</div>
+      <div class="card-sub">Every single one felt<br>like it would last forever.</div>
+    </div>
+    <div class="card card-summer">
+      <span class="card-icon">☀</span>
+      <div class="card-label">Summers left</div>
+      <div class="card-value" id="summersLeft">—</div>
+      <div class="card-sub"><strong id="summersGone">—</strong> already spent,<br>out of 80 total.</div>
+    </div>
+    <div class="card card-books">
+      <span class="card-icon">📖</span>
+      <div class="card-label">Books you could've read</div>
+      <div class="card-value" id="books">—</div>
+      <div class="card-sub">at <strong>1 book/week</strong> since age 10.<br>Have you read that many?</div>
+    </div>
+    <div class="card card-breath">
+      <span class="card-icon">〰</span>
+      <div class="card-label">Breaths taken</div>
+      <div class="card-value" id="breaths">—</div>
+      <div class="card-sub">at ~<strong>15/min</strong>.<br>Never once had to think about it.</div>
+    </div>
+    <div class="card card-moon">
+      <span class="card-icon">◑</span>
+      <div class="card-label">Full moons witnessed</div>
+      <div class="card-value" id="moons">—</div>
+      <div class="card-sub">Every 29.5 days.<br>How many did you look up?</div>
+    </div>
+    <div class="card card-sleep">
+      <span class="card-icon">◗</span>
+      <div class="card-label">Years spent asleep</div>
+      <div class="card-value" id="sleepYears">—</div>
+      <div class="card-sub">~<strong>8 hrs/night</strong>, one third of your life.<br>Gone. Beautifully gone.</div>
+    </div>
+    <div class="card card-meals">
+      <span class="card-icon">◇</span>
+      <div class="card-label">Meals eaten</div>
+      <div class="card-value" id="meals">—</div>
+      <div class="card-sub">at <strong>3 meals/day</strong>.<br>How many do you remember?</div>
+    </div>
+  </div>
+
+  <div class="quote-wrap">
+    <p class="quote-text" id="quoteDisplay"></p>
+  </div>
+
+  <button class="btn-reset" onclick="resetCounter()">↩ enter a different date</button>
+</div>
+
+<script>
+  // Populate Day
+  const selDay = document.getElementById('selDay');
+  for (let d = 1; d <= 31; d++) {
+    const o = document.createElement('option');
+    o.value = d; o.textContent = d;
+    selDay.appendChild(o);
+  }
+
+  // Populate Year
+  const selYear = document.getElementById('selYear');
+  const thisYear = new Date().getFullYear();
+  for (let y = thisYear - 1; y >= 1920; y--) {
+    const o = document.createElement('option');
+    o.value = y; o.textContent = y;
+    selYear.appendChild(o);
+  }
+
+  let ticker, birthDate;
+
+  const quotes = [
+    "You have approximately <em>{weeks} weeks</em> left if you live to 80. Each one is irreplaceable.",
+    "Of all the Mondays you'll ever see, <em>{mondayPct}%</em> are already behind you.",
+    "You've taken <em>{breaths} breaths</em> and never once had to remember to.",
+    "There are roughly <em>{summersLeft} summers</em> left. This one counts.",
+    "Time spent sleeping: <em>{sleepYears} years.</em> And you needed every minute.",
+  ];
+
+  function startCounter() {
+    const d = parseInt(selDay.value);
+    const m = parseInt(document.getElementById('selMonth').value);
+    const y = parseInt(selYear.value);
+
+    if (isNaN(d) || isNaN(m) || isNaN(y)) {
+      alert('Please select day, month, and year.'); return;
+    }
+
+    birthDate = new Date(y, m, d);
+    const now = new Date();
+    if (birthDate >= now) { alert('Please enter a past date.'); return; }
+
+    document.getElementById('entry').style.display = 'none';
+    document.getElementById('dashboard').classList.add('visible');
+
+    updateDisplay();
+    ticker = setInterval(updateDisplay, 1000);
+
+    setTimeout(() => {
+      const pct = Math.min(((Date.now() - birthDate) / (1000*60*60*24*365.25) / 80) * 100, 100);
+      document.getElementById('progressFill').style.width = pct.toFixed(4) + '%';
+    }, 300);
+  }
+
+  function updateDisplay() {
+    const now = new Date();
+    const ageMs = now - birthDate;
+    const totalSecs = Math.floor(ageMs / 1000);
+
+    let years = now.getFullYear() - birthDate.getFullYear();
+    if (now < new Date(now.getFullYear(), birthDate.getMonth(), birthDate.getDate())) years--;
+    const tmp = new Date(birthDate); tmp.setFullYear(tmp.getFullYear() + years);
+    let months = now.getMonth() - tmp.getMonth() + (now.getDate() < tmp.getDate() ? -1 : 0);
+    if (months < 0) months += 12;
+    const tmp2 = new Date(tmp); tmp2.setMonth(tmp2.getMonth() + months);
+    const days = Math.floor((now - tmp2) / 86400000);
+    const hh = pad(now.getHours()), mm = pad(now.getMinutes()), ss = pad(now.getSeconds());
+
+    document.getElementById('ageDisplay').innerHTML =
+      `<span class="yrs">${years}</span> yrs &nbsp;${months} mo &nbsp;${days} d &nbsp;${hh}:${mm}:${ss}`;
+
+    const ML = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    document.getElementById('sinceDisplay').textContent =
+      `Born ${birthDate.getDate()} ${ML[birthDate.getMonth()]} ${birthDate.getFullYear()}`;
+
+    const ageYears = ageMs / (1000*60*60*24*365.25);
+    const pct = Math.min((ageYears / 80) * 100, 100);
+    document.getElementById('lifePct').textContent = pct.toFixed(4) + '%';
+    document.getElementById('progressFill').style.width = pct.toFixed(4) + '%';
+
+    const mondays = Math.floor(ageMs / (7*86400000));
+    const summersGone = Math.floor(ageYears);
+    const summersLeft = Math.max(0, 80 - summersGone);
+    const breaths = Math.floor(totalSecs * 15 / 60);
+    const sleepYears = ((ageYears * 8) / 24).toFixed(2);
+
+    set('heartbeats', fmt(Math.floor(totalSecs * 70 / 60)));
+    set('mondays', fmt(mondays));
+    set('summersLeft', fmt(summersLeft));
+    document.getElementById('summersGone').textContent = fmt(summersGone);
+    set('books', fmt(Math.floor(Math.max(0, ageYears - 10) * 52)));
+    set('breaths', fmt(breaths));
+    set('moons', fmt(Math.floor(ageMs / (29.5*86400000))));
+    set('sleepYears', sleepYears);
+    set('meals', fmt(Math.floor(ageYears * 365.25 * 3)));
+
+    const qi = Math.floor(Date.now() / 20000) % quotes.length;
+    const q = quotes[qi]
+      .replace('{weeks}', fmt(Math.floor(summersLeft * 52)))
+      .replace('{mondayPct}', ((mondays / (80*52))*100).toFixed(1))
+      .replace('{breaths}', fmt(breaths))
+      .replace('{summersLeft}', fmt(summersLeft))
+      .replace('{sleepYears}', ((ageYears*8/24).toFixed(1)));
+    document.getElementById('quoteDisplay').innerHTML = q;
+  }
+
+  const prev = {};
+  function set(id, val) {
+    const el = document.getElementById(id);
+    if (el && prev[id] !== val) { el.textContent = val; prev[id] = val; }
+  }
+  function fmt(n) { return Number(n).toLocaleString('en-US'); }
+  function pad(n) { return String(n).padStart(2,'0'); }
+
+  function resetCounter() {
+    clearInterval(ticker);
+    Object.keys(prev).forEach(k => delete prev[k]);
+    document.getElementById('dashboard').classList.remove('visible');
+    document.getElementById('entry').style.display = 'flex';
+    document.getElementById('progressFill').style.width = '0';
+    document.getElementById('selDay').value = '';
+    document.getElementById('selMonth').value = '';
+    document.getElementById('selYear').value = '';
+  }
+</script>
+</body>
+</html>
